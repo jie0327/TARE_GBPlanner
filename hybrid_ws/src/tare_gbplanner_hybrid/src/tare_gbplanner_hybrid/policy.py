@@ -26,6 +26,7 @@ class PolicyConfig:
     cable_soft_limit_rad: float = math.pi
     local_global_alignment_bonus: float = 0.25
     minimum_local_alignment: float = 0.5
+    max_local_backtrack_m: float = 0.5
     constrained_target_distance_m: float = 1.5
 
 
@@ -95,6 +96,33 @@ def _alignment(current: State2, local_target: Point2, global_target: Point2) -> 
         local_norm * global_norm
     )
     return 0.5 * (_clamp(cosine, -1.0, 1.0) + 1.0)
+
+
+def _path_respects_global_progress(
+    current: State2,
+    path: Sequence[Point2],
+    global_target: Point2,
+    max_backtrack_m: float,
+) -> bool:
+    """Reject a local route that gives back substantial global progress."""
+    global_dx = global_target[0] - current[0]
+    global_dy = global_target[1] - current[1]
+    global_norm = math.hypot(global_dx, global_dy)
+    if global_norm < 1e-6:
+        return True
+
+    unit_x = global_dx / global_norm
+    unit_y = global_dy / global_norm
+    best_progress = 0.0
+    for point in path:
+        progress = (
+            (point[0] - current[0]) * unit_x
+            + (point[1] - current[1]) * unit_y
+        )
+        if progress < best_progress - max_backtrack_m:
+            return False
+        best_progress = max(best_progress, progress)
+    return True
 
 
 def _constrained_target(
@@ -177,7 +205,14 @@ def select_target(
         )
         local_aligned = local_alignment >= config.minimum_local_alignment
         local_admissible = (
-            local_turn_admissible and local_aligned
+            local_turn_admissible
+            and local_aligned
+            and _path_respects_global_progress(
+                current,
+                local_points,
+                tare_target,
+                config.max_local_backtrack_m,
+            )
         )
         local_score = (
             local_weight

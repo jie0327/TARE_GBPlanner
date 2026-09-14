@@ -98,6 +98,19 @@ RUN chmod +x \
 COPY src/tb3_tare_sim/launch/tb3_tare_fast_lio.launch \
      /opt/tare_planner/src/tb3_tare_sim/launch/tb3_tare_fast_lio.launch
 
+# Rebuild only TARE in this experimental image so Pittsburgh can opt into
+# slope-aware keypose edges. The source default remains the official flat
+# ground behavior, and the cmu-tare-official image is not modified.
+COPY src/tare_planner/src/tare_planner/src/sensor_coverage_planner/sensor_coverage_planner_ground.cpp \
+     /opt/tare_planner/src/tare_planner/src/tare_planner/src/sensor_coverage_planner/sensor_coverage_planner_ground.cpp
+RUN source /opt/ros/noetic/setup.bash && \
+    ln -s /opt/tare_planner/src/tare_planner/src/tare_planner \
+      /opt/gbplanner_ws/src/hybrid/tare_planner && \
+    cd /opt/gbplanner_ws && \
+    catkin build tare_planner \
+      --no-status --summarize --limit-status-rate 0.5 \
+      -j"${CATKIN_JOBS}" -p"${CATKIN_JOBS}"
+
 RUN source /opt/ros/noetic/setup.bash && \
     source /opt/tare_planner/devel/setup.bash && \
     source /opt/gbplanner_ws/devel/setup.bash && \

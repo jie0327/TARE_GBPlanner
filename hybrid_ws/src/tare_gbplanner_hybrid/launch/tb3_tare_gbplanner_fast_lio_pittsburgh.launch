@@ -11,6 +11,9 @@
   <arg name="slam_rviz_config"
        default="$(find tare_gbplanner_hybrid)/config/fast_lio_mapping_hybrid.rviz"/>
   <arg name="twoWayDrive" default="false"/>
+  <!-- Pittsburgh contains sloped branches with more than 1 m elevation
+       change; ground TARE's flat-world keypose gate would disconnect them. -->
+  <arg name="tare_allow_vertical_edge" default="true"/>
   <arg name="maxSpeed" default="1.0"/>
   <arg name="autonomySpeed" default="0.6"/>
   <arg name="vehicleX" default="0.0"/>
@@ -48,6 +51,7 @@
     <arg name="slam_rviz" value="$(arg slam_rviz)"/>
     <arg name="slam_rviz_config" value="$(arg slam_rviz_config)"/>
     <arg name="twoWayDrive" value="$(arg twoWayDrive)"/>
+    <arg name="tare_allow_vertical_edge" value="$(arg tare_allow_vertical_edge)"/>
     <arg name="maxSpeed" value="$(arg maxSpeed)"/>
     <arg name="autonomySpeed" value="$(arg autonomySpeed)"/>
     <arg name="gbplanner_config_file" value="$(arg gbplanner_config_file)"/>

@@ -16,6 +16,7 @@
   <arg name="slam_rviz_config"
        default="$(find tare_gbplanner_hybrid)/config/fast_lio_mapping_hybrid.rviz"/>
   <arg name="twoWayDrive" default="false"/>
+  <arg name="tare_allow_vertical_edge" default="false"/>
   <arg name="maxSpeed" default="1.0"/>
   <arg name="autonomySpeed" default="0.6"/>
   <arg name="gbplanner_config_file"
@@ -39,6 +40,7 @@
          real /start_exploration command when the operator is ready. -->
     <arg name="adapter_start_topic" value="/hybrid/adapter_start"/>
     <arg name="twoWayDrive" value="$(arg twoWayDrive)"/>
+    <arg name="tare_allow_vertical_edge" value="$(arg tare_allow_vertical_edge)"/>
     <arg name="maxSpeed" value="$(arg maxSpeed)"/>
     <arg name="autonomySpeed" value="$(arg autonomySpeed)"/>
     <arg name="tare_waypoint_topic" value="/hybrid/tare_waypoint"/>

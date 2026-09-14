@@ -11,6 +11,7 @@ PACKAGE_ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PACKAGE_ROOT / "src"))
 
 from tare_gbplanner_hybrid.commitment import RouteCommitment  # noqa: E402
+from tare_gbplanner_hybrid.path_tracking import select_path_target  # noqa: E402
 from tare_gbplanner_hybrid.policy import PolicyConfig, select_target  # noqa: E402
 
 
@@ -157,6 +158,53 @@ class AdaptivePolicyTest(unittest.TestCase):
                            math.cos(command_heading - math.pi))),
             self.config.max_single_turn_rad + 1e-6,
         )
+
+    def test_gbplanner_path_with_large_intermediate_backtrack_is_rejected(self):
+        config = PolicyConfig(
+            narrow_clearance_m=0.7,
+            wide_clearance_m=2.0,
+            global_weight_narrow=0.2,
+            global_weight_open=0.8,
+            max_single_turn_rad=math.radians(179.0),
+            max_local_backtrack_m=0.25,
+        )
+        decision = select_target(
+            current=(0.0, 0.0, 0.0),
+            tare_target=(10.0, 0.0),
+            gb_path=[(1.0, 0.0), (1.5, 0.2), (0.8, 0.4), (2.0, 0.5)],
+            clearance_m=0.3,
+            cable_winding_rad=0.0,
+            config=config,
+        )
+
+        self.assertEqual("tare_global", decision.source)
+        self.assertFalse(decision.local_admissible)
+
+
+class PathTrackingTest(unittest.TestCase):
+    def test_selects_an_intermediate_target_instead_of_path_endpoint(self):
+        target, index = select_path_target(
+            current=(0.0, 0.0),
+            path=[(0.0, 0.0, 0.1), (0.4, 0.0, 0.2),
+                  (0.9, 0.0, 0.3), (2.5, 0.0, 0.4)],
+            previous_index=0,
+            lookahead_m=0.8,
+        )
+
+        self.assertEqual((0.9, 0.0, 0.3), target)
+        self.assertEqual(2, index)
+
+    def test_tracking_index_never_moves_backwards(self):
+        target, index = select_path_target(
+            current=(1.45, 0.0),
+            path=[(0.0, 0.0, 0.0), (0.5, 0.0, 0.0),
+                  (1.0, 0.0, 0.0), (1.5, 0.0, 0.0), (2.0, 0.0, 0.0)],
+            previous_index=2,
+            lookahead_m=0.4,
+        )
+
+        self.assertEqual((2.0, 0.0, 0.0), target)
+        self.assertGreaterEqual(index, 2)
 
 
 class RouteCommitmentTest(unittest.TestCase):

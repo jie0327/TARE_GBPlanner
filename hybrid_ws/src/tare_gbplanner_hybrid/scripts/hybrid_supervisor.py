@@ -20,6 +20,7 @@ from std_msgs.msg import Float32, Float32MultiArray, String
 from tf.transformations import euler_from_quaternion
 
 from tare_gbplanner_hybrid.commitment import RouteCommitment
+from tare_gbplanner_hybrid.path_tracking import select_path_target
 from tare_gbplanner_hybrid.policy import PolicyConfig, select_target
 
 
@@ -52,6 +53,9 @@ class HybridSupervisor:
         self._obstacle_min_z = rospy.get_param("~obstacle_min_z_relative", -0.08)
         self._obstacle_max_z = rospy.get_param("~obstacle_max_z_relative", 0.45)
         self._gb_lookahead = rospy.get_param("~gbplanner_lookahead_m", 2.5)
+        self._tracking_lookahead = rospy.get_param(
+            "~gbplanner_tracking_lookahead_m", 0.8
+        )
         self._route_commitment = RouteCommitment(
             minimum_duration_s=rospy.get_param("~minimum_route_duration", 3.0),
             maximum_duration_s=rospy.get_param("~maximum_route_duration", 10.0),
@@ -63,6 +67,7 @@ class HybridSupervisor:
             progress_distance_m=rospy.get_param("~route_progress_distance", 0.10),
         )
         self._committed_local_poses = []
+        self._committed_path_index = 0
         self._committed_target_z = 0.0
 
         self._policy = PolicyConfig(
@@ -83,6 +88,9 @@ class HybridSupervisor:
             ),
             minimum_local_alignment=rospy.get_param(
                 "~minimum_local_alignment", 0.5
+            ),
+            max_local_backtrack_m=rospy.get_param(
+                "~max_local_backtrack_m", 0.5
             ),
             constrained_target_distance_m=rospy.get_param(
                 "~constrained_target_distance", 1.5
@@ -296,6 +304,7 @@ class HybridSupervisor:
             self._committed_local_poses = (
                 list(local_poses) if decision.source == "gbplanner_local" else []
             )
+            self._committed_path_index = 0
             self._committed_target_z = (
                 local_poses[-1].position.z
                 if decision.source == "gbplanner_local" and local_poses
@@ -327,8 +336,23 @@ class HybridSupervisor:
         waypoint = PointStamped()
         waypoint.header.stamp = rospy.Time.now()
         waypoint.header.frame_id = self._map_frame
-        waypoint.point.x, waypoint.point.y = active.target
-        waypoint.point.z = self._committed_target_z
+        if active.source == "gbplanner_local" and self._committed_local_poses:
+            path = [
+                (pose.position.x, pose.position.y, pose.position.z)
+                for pose in self._committed_local_poses
+            ]
+            tracking_target, self._committed_path_index = select_path_target(
+                current=(state[0], state[1]),
+                path=path,
+                previous_index=self._committed_path_index,
+                lookahead_m=self._tracking_lookahead,
+            )
+            waypoint.point.x = tracking_target[0]
+            waypoint.point.y = tracking_target[1]
+            waypoint.point.z = tracking_target[2]
+        else:
+            waypoint.point.x, waypoint.point.y = active.target
+            waypoint.point.z = self._committed_target_z
         self._waypoint_pub.publish(waypoint)
         self._publish_path(
             active.source, state, waypoint, self._committed_local_poses

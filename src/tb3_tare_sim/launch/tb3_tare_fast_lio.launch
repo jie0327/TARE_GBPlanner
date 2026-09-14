@@ -23,6 +23,9 @@
   <arg name="joystick" default="false"/>
   <arg name="checkTerrainConn" default="true"/>
   <arg name="twoWayDrive" default="false"/>
+  <!-- Preserve CMU ground-TARE behavior by default. Sloped 3-D worlds can
+       explicitly enable full 3-D keypose graph connections. -->
+  <arg name="tare_allow_vertical_edge" default="false"/>
   <!-- Public seam for experimental supervisors. The default preserves the
        proven TARE -> local_planner /way_point chain unchanged. -->
   <arg name="tare_waypoint_topic" default="/way_point"/>
@@ -171,5 +174,7 @@
     <remap from="/way_point" to="$(arg tare_waypoint_topic)"/>
     <rosparam command="load" file="$(find tare_planner)/config/$(arg scenario).yaml"/>
     <param name="kAutoStart" type="bool" value="false"/>
+    <param name="keypose_graph/kAllowVerticalEdge" type="bool"
+           value="$(arg tare_allow_vertical_edge)"/>
   </node>
 </launch>

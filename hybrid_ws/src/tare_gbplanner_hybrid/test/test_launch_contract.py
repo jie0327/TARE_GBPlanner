@@ -33,6 +33,7 @@ class HybridLaunchContractTest(unittest.TestCase):
         self.assertEqual("/way_point", args["tare_waypoint_topic"])
         self.assertEqual("0.0", args["fast_lio_viz_min_z"])
         self.assertEqual("/start_exploration", args["adapter_start_topic"])
+        self.assertEqual("false", args["tare_allow_vertical_edge"])
         self.assertEqual(
             "$(find tb3_tare_sim)/config/fast_lio_mapping.rviz",
             args["slam_rviz_config"],
@@ -78,6 +79,8 @@ class HybridLaunchContractTest(unittest.TestCase):
                          forwarded["fast_lio_viz_min_z"])
         self.assertEqual("/hybrid/adapter_start", forwarded["adapter_start_topic"])
         self.assertEqual("$(arg slam_rviz_config)", forwarded["slam_rviz_config"])
+        self.assertEqual("$(arg tare_allow_vertical_edge)",
+                         forwarded["tare_allow_vertical_edge"])
 
         nodes = list(root.iter("node"))
         gbplanner = [node for node in nodes
@@ -107,6 +110,7 @@ class HybridLaunchContractTest(unittest.TestCase):
         self.assertEqual("0.2", args["vehicleZ"])
         self.assertEqual("mid360", args["sensor_profile"])
         self.assertEqual("-5.0", args["fast_lio_viz_min_z"])
+        self.assertEqual("true", args["tare_allow_vertical_edge"])
 
         includes = [item for item in root.findall("include")
                     if "tb3_tare_gbplanner_fast_lio_cluttered.launch" in item.attrib.get("file", "")]
@@ -123,6 +127,8 @@ class HybridLaunchContractTest(unittest.TestCase):
         self.assertEqual("$(arg fast_lio_viz_min_z)",
                          forwarded["fast_lio_viz_min_z"])
         self.assertEqual("$(arg slam_rviz_config)", forwarded["slam_rviz_config"])
+        self.assertEqual("$(arg tare_allow_vertical_edge)",
+                         forwarded["tare_allow_vertical_edge"])
         world = PACKAGE_ROOT / "worlds" / "pittsburgh_mine_clean.world"
         self.assertTrue(world.is_file())
         world_text = world.read_text()
@@ -147,6 +153,22 @@ class HybridLaunchContractTest(unittest.TestCase):
         self.assertIn("request.target.position.y = tare_target.point.y", supervisor)
         self.assertIn("planner_srvRequest", supervisor)
         self.assertIn("response.success", supervisor)
+
+    def test_hybrid_image_rebuilds_tare_with_vertical_edge_parameter(self):
+        dockerfile_path = REPO_ROOT / "Dockerfile.hybrid"
+        if not dockerfile_path.exists():
+            self.skipTest("Dockerfile.hybrid is intentionally not copied into the image")
+        tare_source = (
+            REPO_ROOT / "src" / "tare_planner" / "src" / "tare_planner" / "src"
+            / "sensor_coverage_planner" / "sensor_coverage_planner_ground.cpp"
+        ).read_text()
+        dockerfile = dockerfile_path.read_text()
+
+        self.assertIn('"keypose_graph/kAllowVerticalEdge"', tare_source)
+        self.assertIn("SetAllowVerticalEdge(allow_vertical_edge)", tare_source)
+        self.assertIn("sensor_coverage_planner_ground.cpp", dockerfile)
+        self.assertIn("catkin build tare_planner", dockerfile)
+        self.assertIn("/opt/gbplanner_ws/src/hybrid/tare_planner", dockerfile)
 
     def test_rviz_control_panel_uses_native_cmu_control_topics(self):
         plugin_xml = (PACKAGE_ROOT / "plugin_description.xml").read_text()

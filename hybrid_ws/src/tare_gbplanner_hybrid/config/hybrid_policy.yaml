@@ -20,6 +20,9 @@ wide_clearance_m: 2.00
 global_weight_narrow: 0.20
 global_weight_open: 0.80
 gbplanner_lookahead_m: 2.50
+# Execute the collision-checked GBPlanner path in short segments instead of
+# giving the point-goal controller only the far endpoint.
+gbplanner_tracking_lookahead_m: 0.80
 
 # Reject local candidates that require a 90-degree in-place-like heading jump.
 max_single_turn_deg: 89.0
@@ -30,6 +33,9 @@ local_global_alignment_bonus: 0.25
 # 0.5 means non-negative dot product: GBPlanner may detour sideways but may
 # never send the robot into the half-plane opposite TARE's global objective.
 minimum_local_alignment: 0.50
+# Permit small obstacle detours, but reject a local path that gives back more
+# than this much progress toward TARE's current global target.
+max_local_backtrack_m: 0.50
 # When a desired target is behind the robot, issue a short staged turn instead
 # of publishing the far point and forcing one large in-place rotation.
 constrained_target_distance: 1.50
