@@ -1,0 +1,2 @@
+/usr/bin/ar qc /root/tare_planner/devel/lib/libgrid_world.a  CMakeFiles/grid_world.dir/src/grid_world/grid_world.cpp.o
+/usr/bin/ranlib /root/tare_planner/devel/lib/libgrid_world.a

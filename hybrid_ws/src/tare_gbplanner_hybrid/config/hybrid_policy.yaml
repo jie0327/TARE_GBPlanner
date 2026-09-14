@@ -1,0 +1,35 @@
+# Adaptive weighting at the TARE/GBPlanner seam.
+planning_period: 1.0
+# Keep one short route long enough to execute it. Replan earlier only after the
+# waypoint is reached, TARE materially changes its global target, or motion
+# makes no progress for route_stall_timeout seconds.
+minimum_route_duration: 3.0
+maximum_route_duration: 10.0
+route_stall_timeout: 4.0
+route_reached_distance: 0.45
+tare_target_change_distance: 2.0
+route_progress_distance: 0.10
+clearance_update_period: 0.5
+clearance_scan_radius: 3.0
+clearance_percentile: 0.05
+obstacle_min_z_relative: -0.08
+obstacle_max_z_relative: 0.45
+
+narrow_clearance_m: 0.70
+wide_clearance_m: 2.00
+global_weight_narrow: 0.20
+global_weight_open: 0.80
+gbplanner_lookahead_m: 2.50
+
+# Reject local candidates that require a 90-degree in-place-like heading jump.
+max_single_turn_deg: 89.0
+turn_penalty: 0.18
+cable_penalty: 0.45
+cable_soft_limit_deg: 180.0
+local_global_alignment_bonus: 0.25
+# 0.5 means non-negative dot product: GBPlanner may detour sideways but may
+# never send the robot into the half-plane opposite TARE's global objective.
+minimum_local_alignment: 0.50
+# When a desired target is behind the robot, issue a short staged turn instead
+# of publishing the far point and forcing one large in-place rotation.
+constrained_target_distance: 1.50

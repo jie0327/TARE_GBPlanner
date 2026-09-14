@@ -1,0 +1,175 @@
+<launch>
+  <!-- TB3 + Mid-360 geometry simulation + official FAST-LIO2 + official TARE. -->
+  <arg name="world_name" default="garage"/>
+  <!-- Optional external SDF world. The default resolves to the historical
+       vehicle_simulator world, so existing callers keep exactly the same
+       Gazebo scene. -->
+  <arg name="world_file" default="$(find vehicle_simulator)/world/$(arg world_name).world"/>
+  <arg name="scenario" default="garage"/>
+  <arg name="vehicleX" default="0.0"/>
+  <arg name="vehicleY" default="0.0"/>
+  <arg name="vehicleZ" default="0.0"/>
+  <arg name="vehicleYaw" default="0.0"/>
+  <!-- Keep Mid-360 as the validated default; VLP-16 is available for
+       controlled FAST-LIO startup comparisons without changing callers. -->
+  <arg name="sensor_profile" default="mid360"/>
+  <arg name="gazebo_gui" default="false"/>
+  <!-- Keep only the FAST-LIO mapping view by default.  Set rviz:=true when
+       the vehicle-simulator and TARE diagnostic RViz windows are needed. -->
+  <arg name="rviz" default="false"/>
+  <arg name="slam_rviz" default="true"/>
+  <arg name="slam_rviz_config"
+       default="$(find tb3_tare_sim)/config/fast_lio_mapping.rviz"/>
+  <arg name="joystick" default="false"/>
+  <arg name="checkTerrainConn" default="true"/>
+  <arg name="twoWayDrive" default="false"/>
+  <!-- Public seam for experimental supervisors. The default preserves the
+       proven TARE -> local_planner /way_point chain unchanged. -->
+  <arg name="tare_waypoint_topic" default="/way_point"/>
+  <!-- The adapter normally auto-starts TARE. Experimental launch files can
+       remap this publication and let an RViz control panel start it instead. -->
+  <arg name="adapter_start_topic" default="/start_exploration"/>
+  <arg name="maxSpeed" default="2.0"/>
+  <arg name="autonomySpeed" default="1.5"/>
+  <arg name="pcd_save" default="false"/>
+  <arg name="fast_lio_warmup_cloud_count" default="30"/>
+  <arg name="fast_lio_viz_rate" default="1.0"/>
+  <arg name="fast_lio_viz_voxel_size" default="0.10"/>
+  <!-- The flat floor is about 8 cm below FAST-LIO's initial IMU frame.
+       Filtering at z=0 removes the repeated floor rings from RViz only. -->
+  <arg name="fast_lio_viz_min_z" default="0.0"/>
+
+  <param name="use_sim_time" value="true"/>
+
+  <group if="$(arg joystick)">
+    <include file="$(find ps3joy)/launch/ps3.launch"/>
+  </group>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="$(arg gazebo_gui)"/>
+    <arg name="headless" value="false"/>
+    <arg name="world_name" value="$(arg world_file)"/>
+  </include>
+
+  <!-- Gazebo odometry remains available as /odom for comparison, but its TF
+       is disabled. TARE receives only the FAST-LIO2 estimate below. -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro --inorder '$(find tb3_tare_sim)/urdf/turtlebot3_waffle_tare.urdf.xacro' sensor_profile:=$(arg sensor_profile) odom_frame:=odom_truth publish_odom_tf:=false"/>
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_tb3"
+        args="-urdf -param /robot_description -model tb3_waffle -x $(arg vehicleX) -y $(arg vehicleY) -z $(arg vehicleZ) -Y $(arg vehicleYaw)"
+        output="screen"/>
+
+  <!-- Gazebo represents rays with no return as NaN.  FAST-LIO's official
+       MARSIM preprocessing intentionally skips rolling-scan deskew, but it
+       expects finite XYZ input, so use the standard PCL filter first. -->
+  <node pkg="nodelet" type="nodelet" name="fast_lio_scan_filter"
+        args="standalone pcl/PassThrough" output="screen">
+    <remap from="~input" to="/velodyne_points"/>
+    <remap from="~output" to="/velodyne_points_fast_lio"/>
+    <param name="filter_field_name" value="z"/>
+    <param name="filter_limit_min" value="-100.0"/>
+    <param name="filter_limit_max" value="100.0"/>
+  </node>
+
+  <!-- Official HKU-MARS FAST-LIO2 node and its unmodified estimator. -->
+  <rosparam command="load" file="$(find tb3_tare_sim)/config/fast_lio_sim.yaml"/>
+  <param name="feature_extract_enable" type="bool" value="false"/>
+  <!-- The MARSIM preprocessing path keeps every finite simulated point. -->
+  <param name="max_iteration" type="int" value="3"/>
+  <param name="filter_size_surf" type="double" value="0.3"/>
+  <param name="filter_size_map" type="double" value="0.3"/>
+  <param name="cube_side_length" type="double" value="200"/>
+  <param name="runtime_pos_log_enable" type="bool" value="false"/>
+  <param name="pcd_save/pcd_save_en" value="$(arg pcd_save)"/>
+  <!-- FAST-LIO already contains an ikd-tree map publisher. Publish a complete,
+       voxelized map once per ten scans for RViz instead of accumulating scans. -->
+  <param name="publish/map_publish_en" type="bool" value="true"/>
+  <param name="publish/map_publish_interval" type="int" value="10"/>
+  <node pkg="fast_lio" type="fastlio_mapping" name="laserMapping" output="screen"/>
+
+  <node pkg="tb3_tare_sim" type="fast_lio_tare_adapter"
+        name="fast_lio_tare_adapter" output="screen">
+    <remap from="/start_exploration" to="$(arg adapter_start_topic)"/>
+    <param name="map_frame" value="map"/>
+    <param name="sensor_frame" value="sensor"/>
+    <param name="lidar_offset_x" value="-0.064"/>
+    <param name="lidar_offset_y" value="0.0"/>
+    <param name="lidar_offset_z" value="0.054"/>
+    <param name="ready_cloud_count" value="$(arg fast_lio_warmup_cloud_count)"/>
+  </node>
+
+  <node pkg="tb3_tare_sim" type="twist_stamped_to_twist.py"
+        name="twist_stamped_to_twist" output="screen">
+    <param name="input_topic" value="/cmd_vel_stamped"/>
+    <param name="output_topic" value="/tb3/cmd_vel_bridge"/>
+    <param name="timeout" value="0.5"/>
+  </node>
+  <node pkg="tb3_tare_sim" type="twist_watchdog.py"
+        name="tb3_cmd_vel_watchdog" output="screen" respawn="true">
+    <param name="input_topic" value="/tb3/cmd_vel_bridge"/>
+    <param name="output_topic" value="/cmd_vel"/>
+    <param name="timeout" value="0.5"/>
+  </node>
+
+  <group>
+    <remap from="/cmd_vel" to="/cmd_vel_stamped"/>
+    <include file="$(find local_planner)/launch/local_planner.launch">
+      <arg name="sensorOffsetX" value="-0.064"/>
+      <arg name="sensorOffsetY" value="0.0"/>
+      <arg name="vehicleLength" value="0.30"/>
+      <arg name="vehicleWidth" value="0.30"/>
+      <arg name="twoWayDrive" value="$(arg twoWayDrive)"/>
+      <arg name="maxSpeed" value="$(arg maxSpeed)"/>
+      <arg name="autonomyMode" value="true"/>
+      <arg name="autonomySpeed" value="$(arg autonomySpeed)"/>
+    </include>
+  </group>
+
+  <include file="$(find terrain_analysis)/launch/terrain_analysis.launch"/>
+  <include file="$(find terrain_analysis_ext)/launch/terrain_analysis_ext.launch">
+    <arg name="checkTerrainConn" value="$(arg checkTerrainConn)"/>
+  </include>
+  <include file="$(find sensor_scan_generation)/launch/sensor_scan_generation.launch"/>
+
+  <node if="$(arg rviz)" launch-prefix="nice" pkg="rviz" type="rviz"
+        name="rvizGA" args="-d $(find vehicle_simulator)/rviz/vehicle_simulator.rviz"
+        respawn="true"/>
+  <!-- Visualization-only branch. Throttling, ground rejection and voxel filtering happen
+       after FAST-LIO, so localization, mapping, and TARE retain full-rate
+       /cloud_registered data. -->
+  <node if="$(arg slam_rviz)" pkg="topic_tools" type="throttle"
+        name="fast_lio_viz_throttle"
+        args="messages /Laser_map $(arg fast_lio_viz_rate) /cloud_registered_viz_raw"/>
+  <node if="$(arg slam_rviz)" pkg="nodelet" type="nodelet"
+        name="fast_lio_viz_ground_filter" args="standalone pcl/PassThrough">
+    <remap from="~input" to="/cloud_registered_viz_raw"/>
+    <remap from="~output" to="/cloud_registered_viz_above_ground"/>
+    <param name="filter_field_name" value="z"/>
+    <param name="filter_limit_min" value="$(arg fast_lio_viz_min_z)"/>
+    <param name="filter_limit_max" value="100.0"/>
+  </node>
+  <node if="$(arg slam_rviz)" pkg="nodelet" type="nodelet"
+        name="fast_lio_viz_voxel_grid" args="standalone pcl/VoxelGrid">
+    <remap from="~input" to="/cloud_registered_viz_above_ground"/>
+    <remap from="~output" to="/cloud_registered_viz"/>
+    <rosparam subst_value="true">
+      filter_field_name: ''
+      leaf_size: $(arg fast_lio_viz_voxel_size)
+    </rosparam>
+  </node>
+  <node if="$(arg slam_rviz)" launch-prefix="nice" pkg="rviz" type="rviz"
+        name="fast_lio_rviz" args="-d $(arg slam_rviz_config)"
+        respawn="true"/>
+
+  <node if="$(arg rviz)" launch-prefix="nice" pkg="rviz" type="rviz"
+        name="tare_planner_ground_rviz"
+        args="-d $(find tare_planner)/rviz/tare_planner_ground.rviz" respawn="true"/>
+  <node pkg="tare_planner" type="tare_planner_node" name="tare_planner_node"
+        output="screen" ns="sensor_coverage_planner">
+    <remap from="/way_point" to="$(arg tare_waypoint_topic)"/>
+    <rosparam command="load" file="$(find tare_planner)/config/$(arg scenario).yaml"/>
+    <param name="kAutoStart" type="bool" value="false"/>
+  </node>
+</launch>

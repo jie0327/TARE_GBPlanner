@@ -1,0 +1,116 @@
+# syntax=docker/dockerfile:1
+
+# This image extends the proven TARE image without replacing it. GBPlanner2
+# and every non-ROS dependency below are fetched from their upstream projects;
+# no source or image from slam_docker is used.
+ARG TARE_BASE_IMAGE=cmu-tare-official:noetic
+FROM ${TARE_BASE_IMAGE}
+
+SHELL ["/bin/bash", "-c"]
+
+ARG CATKIN_JOBS=2
+ARG GBPLANNER_COMMIT=7301b5350915cf3a4055072ad559842db37b4ca9
+ARG VOXBLOX_COMMIT=0ee88c26c203a3fe88e348dbbb552ab431a35352
+ARG ADAPTIVE_OBB_COMMIT=7dc24c973d233f63d73f2a8548e6f5227bc422bb
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get -o Acquire::Retries=5 update && \
+    apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+      build-essential \
+      ca-certificates \
+      cmake \
+      git \
+      libeigen3-dev \
+      libgflags-dev \
+      libgoogle-glog-dev \
+      libtool \
+      libprotobuf-dev \
+      protobuf-compiler \
+      python3-catkin-tools \
+      python3-nose \
+      ros-noetic-actionlib-msgs \
+      ros-noetic-cv-bridge \
+      ros-noetic-interactive-markers \
+      ros-noetic-octomap-ros \
+      ros-noetic-roscpp-serialization \
+      ros-noetic-tf-conversions \
+      ros-noetic-tf2-ros \
+      ros-noetic-visualization-msgs \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/gbplanner_ws/src
+
+# Revisions are pinned so a later upstream change cannot silently alter the
+# experiment. These are the official GBPlanner2/noetic source repositories.
+RUN git clone https://github.com/ntnu-arl/gbplanner_ros.git exploration/gbplanner_ros && \
+    git -C exploration/gbplanner_ros checkout "${GBPLANNER_COMMIT}" && \
+    git clone https://github.com/ntnu-arl/voxblox.git mapping/voxblox && \
+    git -C mapping/voxblox checkout "${VOXBLOX_COMMIT}" && \
+    git clone https://github.com/ntnu-arl/adaptive_obb_ros.git exploration/adaptive_obb_ros && \
+    git -C exploration/adaptive_obb_ros checkout "${ADAPTIVE_OBB_COMMIT}"
+
+RUN git clone https://github.com/catkin/catkin_simple.git misc/catkin_simple && \
+    git -C misc/catkin_simple checkout 0e62848b12da76c8cc58a1add42b4f894d1ac21e && \
+    git clone https://github.com/ethz-asl/eigen_catkin.git misc/eigen_catkin && \
+    git -C misc/eigen_catkin checkout 00b5eb254bad8de9cd68d238aa994e443062cf30 && \
+    git clone https://github.com/ethz-asl/eigen_checks.git misc/eigen_checks && \
+    git -C misc/eigen_checks checkout 22a6247a3df11bc285d43d1a030f4e874a413997 && \
+    git clone https://github.com/ethz-asl/gflags_catkin.git misc/gflags_catkin && \
+    git -C misc/gflags_catkin checkout 5324e74119996a6e2da12d20e5388c17480ebd79 && \
+    git clone https://github.com/ethz-asl/glog_catkin.git misc/glog_catkin && \
+    git -C misc/glog_catkin checkout dcb4559be6b9f9248c543df6789d46271c13efcf && \
+    git clone https://github.com/ethz-asl/minkindr.git misc/minkindr && \
+    git -C misc/minkindr checkout bc4503c34970a13b7ef06f62505e3333395ce02c && \
+    git clone https://github.com/ethz-asl/minkindr_ros.git misc/minkindr_ros && \
+    git -C misc/minkindr_ros checkout 88e0bd476f82027453f04fdf7c40c7c9a358aa1b && \
+    git clone https://github.com/ethz-asl/protobuf_catkin.git misc/protobuf_catkin && \
+    git -C misc/protobuf_catkin checkout 721a6cc17e7e937e7accfb88a9967b26134db6f9
+
+COPY docker/hybrid-entrypoint.sh /usr/local/bin/tare-gbplanner-entrypoint
+RUN chmod +x /usr/local/bin/tare-gbplanner-entrypoint
+
+WORKDIR /opt/gbplanner_ws
+RUN source /opt/ros/noetic/setup.bash && \
+    source /opt/tare_planner/devel/setup.bash && \
+    catkin config \
+      --extend /opt/tare_planner/devel \
+      --merge-devel \
+      --cmake-args -DCMAKE_BUILD_TYPE=Release -DCATKIN_ENABLE_TESTING=ON && \
+    catkin build gbplanner \
+      --no-status --summarize --limit-status-rate 0.5 \
+      -j"${CATKIN_JOBS}" -p"${CATKIN_JOBS}"
+
+# Keep the official GBPlanner build in a stable image layer. Policy/config
+# changes below then rebuild only this small integration package.
+COPY hybrid_ws/src/tare_gbplanner_hybrid /opt/gbplanner_ws/src/hybrid/tare_gbplanner_hybrid
+RUN chmod +x \
+      /opt/gbplanner_ws/src/hybrid/tare_gbplanner_hybrid/scripts/hybrid_supervisor.py && \
+    source /opt/ros/noetic/setup.bash && \
+    source /opt/tare_planner/devel/setup.bash && \
+    catkin build tare_gbplanner_hybrid \
+      --no-status --summarize --limit-status-rate 0.5 \
+      -j"${CATKIN_JOBS}" -p"${CATKIN_JOBS}"
+
+# The already-built base image can predate the small waypoint-topic seam in
+# this checkout. Overlay only that launch file in the experimental image; the
+# original cmu-tare-official image and service remain unchanged.
+COPY src/tb3_tare_sim/launch/tb3_tare_fast_lio.launch \
+     /opt/tare_planner/src/tb3_tare_sim/launch/tb3_tare_fast_lio.launch
+
+RUN source /opt/ros/noetic/setup.bash && \
+    source /opt/tare_planner/devel/setup.bash && \
+    source /opt/gbplanner_ws/devel/setup.bash && \
+    rospack find gbplanner && \
+    rospack find tare_gbplanner_hybrid && \
+    test -x /opt/gbplanner_ws/devel/lib/gbplanner/gbplanner_node && \
+    test -x /opt/gbplanner_ws/devel/lib/tare_gbplanner_hybrid/hybrid_supervisor.py
+
+ENV ROS_PACKAGE_PATH=/opt/gbplanner_ws/src:/opt/tare_planner/src:/opt/ros/noetic/share \
+    CMAKE_PREFIX_PATH=/opt/gbplanner_ws/devel:/opt/tare_planner/devel:/opt/ros/noetic \
+    LD_LIBRARY_PATH=/opt/gbplanner_ws/devel/lib:/opt/tare_planner/src/tare_planner/src/tare_planner/or-tools/lib:/opt/tare_planner/devel/lib:/opt/ros/noetic/lib \
+    GAZEBO_PLUGIN_PATH=/opt/tare_planner/devel/lib:/opt/ros/noetic/lib \
+    ROS_MASTER_URI=http://127.0.0.1:11311
+
+ENTRYPOINT ["/usr/local/bin/tare-gbplanner-entrypoint"]
+CMD ["bash"]

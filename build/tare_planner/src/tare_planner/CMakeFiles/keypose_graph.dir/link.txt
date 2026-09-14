@@ -1,0 +1,2 @@
+/usr/bin/ar qc /root/tare_planner/devel/lib/libkeypose_graph.a  CMakeFiles/keypose_graph.dir/src/keypose_graph/keypose_graph.cpp.o
+/usr/bin/ranlib /root/tare_planner/devel/lib/libkeypose_graph.a

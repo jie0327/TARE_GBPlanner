@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>tare_gbplanner_hybrid</name>
+  <version>0.1.0</version>
+  <description>Adaptive supervisor joining TARE global coverage with official GBPlanner2 local graph exploration.</description>
+
+  <maintainer email="jack@example.com">jack</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>planner_msgs</depend>
+  <depend>pluginlib</depend>
+  <depend>roscpp</depend>
+  <depend>rospy</depend>
+  <depend>rviz</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <exec_depend>gbplanner</exec_depend>
+  <exec_depend>tb3_tare_sim</exec_depend>
+
+  <test_depend>rostest</test_depend>
+
+  <export>
+    <rviz plugin="${prefix}/plugin_description.xml"/>
+  </export>
+</package>

@@ -1,0 +1,44 @@
+services:
+  tare_official:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CATKIN_JOBS: ${CATKIN_JOBS:-2}
+    image: cmu-tare-official:noetic
+    container_name: cmu_tare_official
+    network_mode: host
+    init: true
+    environment:
+      DISPLAY: ${DISPLAY:-}
+      QT_X11_NO_MITSHM: "1"
+      ROS_MASTER_URI: ${ROS_MASTER_URI:-http://127.0.0.1:11311}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./map:/opt/tare_planner/src/FAST_LIO/PCD:rw
+    working_dir: /opt/tare_planner
+    stdin_open: true
+    tty: true
+    command: ["bash"]
+
+  tare_gbplanner_hybrid:
+    build:
+      context: .
+      dockerfile: Dockerfile.hybrid
+      args:
+        CATKIN_JOBS: ${CATKIN_JOBS:-2}
+    image: tare-gbplanner-hybrid:noetic
+    container_name: tare_gbplanner_hybrid
+    network_mode: host
+    init: true
+    environment:
+      DISPLAY: ${DISPLAY:-}
+      QT_X11_NO_MITSHM: "1"
+      ROS_MASTER_URI: ${ROS_MASTER_URI:-http://127.0.0.1:11311}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./map:/opt/tare_planner/src/FAST_LIO/PCD:rw
+    working_dir: /opt/gbplanner_ws
+    stdin_open: true
+    tty: true
+    command: ["bash"]

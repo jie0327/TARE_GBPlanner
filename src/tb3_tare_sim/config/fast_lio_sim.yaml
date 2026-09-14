@@ -1,0 +1,40 @@
+common:
+    lid_topic: "/velodyne_points_fast_lio"
+    imu_topic: "/imu/data"
+    time_sync_en: false
+    time_offset_lidar_to_imu: 0.0
+
+# Gazebo publishes each ray cloud as one instantaneous frame.  Although the
+# message contains Velodyne ring/time fields, every per-point time is zero.
+# FAST-LIO's official MARSIM path consumes generic PointCloud2 without
+# synthesizing rolling-scan timestamps and therefore avoids false deskew.
+preprocess:
+    lidar_type: 4
+    scan_line: 16
+    scan_rate: 10
+    timestamp_unit: 0
+    blind: 0.2
+
+mapping:
+    acc_cov: 0.1
+    gyr_cov: 0.1
+    b_acc_cov: 0.0001
+    b_gyr_cov: 0.0001
+    fov_degree: 180
+    det_range: 70.0
+    extrinsic_est_en: false
+    # LiDAR position expressed in the IMU frame.
+    extrinsic_T: [-0.064, 0.0, 0.054]
+    extrinsic_R: [1.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0,
+                  0.0, 0.0, 1.0]
+
+publish:
+    path_en: true
+    scan_publish_en: true
+    dense_publish_en: true
+    scan_bodyframe_pub_en: false
+
+pcd_save:
+    pcd_save_en: false
+    interval: -1

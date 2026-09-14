@@ -1,0 +1,23 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/opt/ros/humble/include/**",
+        "/home/jack/tare_planner/src/autonomous_exploration_development_environment/src/velodyne_simulator/velodyne_gazebo_plugins/include/**",
+        "/home/jack/tare_planner/src/autonomous_exploration_development_environment/src/waypoint_rviz_plugin/include/**",
+        "/home/jack/tare_planner/src/tare_planner/src/tare_planner/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

@@ -1,0 +1,2 @@
+/usr/bin/ar qc /root/tare_planner/devel/lib/libmisc_utils.a  CMakeFiles/misc_utils.dir/src/utils/misc_utils.cpp.o
+/usr/bin/ranlib /root/tare_planner/devel/lib/libmisc_utils.a

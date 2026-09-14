@@ -1,0 +1,2 @@
+/usr/bin/ar qc /root/tare_planner/devel/lib/liblocal_coverage_planner.a  CMakeFiles/local_coverage_planner.dir/src/local_coverage_planner/local_coverage_planner.cpp.o
+/usr/bin/ranlib /root/tare_planner/devel/lib/liblocal_coverage_planner.a

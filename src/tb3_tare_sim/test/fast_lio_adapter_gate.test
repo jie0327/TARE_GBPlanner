@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="tb3_tare_sim" type="fast_lio_tare_adapter"
+        name="fast_lio_tare_adapter" output="screen">
+    <param name="ready_cloud_count" value="3"/>
+  </node>
+  <test test-name="fast_lio_adapter_gate"
+        pkg="tb3_tare_sim" type="test_fast_lio_adapter_gate.py"
+        time-limit="10"/>
+</launch>

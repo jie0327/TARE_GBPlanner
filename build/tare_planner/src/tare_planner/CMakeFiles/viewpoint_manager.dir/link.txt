@@ -1,0 +1,2 @@
+/usr/bin/ar qc /root/tare_planner/devel/lib/libviewpoint_manager.a  CMakeFiles/viewpoint_manager.dir/src/viewpoint_manager/viewpoint_manager.cpp.o
+/usr/bin/ranlib /root/tare_planner/devel/lib/libviewpoint_manager.a

@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<!--
+  Minimal wrapper around the official GBPlanner Pittsburgh Mine model.
+
+  The upstream demo world also loads a rotors-specific ROS interface plugin
+  and contains a stale Gazebo <state> snapshot. Neither is needed by the
+  TB3/FAST-LIO/TARE experiment; keeping the official model URI here preserves
+  the original mine geometry while avoiding that unavailable plugin and the
+  non-deterministic saved pose.
+-->
+<sdf version="1.6">
+  <world name="default">
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://pittsburgh_mine</uri>
+    </include>
+    <physics name="1ms" default="0" type="ode">
+      <max_step_size>0.01</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>100</real_time_update_rate>
+    </physics>
+    <gravity>0 0 -9.8</gravity>
+    <scene>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.7 0.7 0.7 1</background>
+      <shadows>1</shadows>
+    </scene>
+  </world>
+</sdf>

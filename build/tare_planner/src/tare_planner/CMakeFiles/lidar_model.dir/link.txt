@@ -1,0 +1,2 @@
+/usr/bin/ar qc /root/tare_planner/devel/lib/liblidar_model.a  CMakeFiles/lidar_model.dir/src/lidar_model/lidar_model.cpp.o
+/usr/bin/ranlib /root/tare_planner/devel/lib/liblidar_model.a

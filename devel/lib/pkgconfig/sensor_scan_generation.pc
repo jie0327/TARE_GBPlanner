@@ -1,0 +1,8 @@
+prefix=/root/tare_planner/devel
+
+Name: sensor_scan_generation
+Description: Description of sensor_scan_generation
+Version: 0.0.1
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: roscpp std_msgs sensor_msgs pcl_ros

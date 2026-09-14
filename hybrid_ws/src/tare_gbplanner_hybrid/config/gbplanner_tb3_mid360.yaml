@@ -1,0 +1,102 @@
+# Overrides loaded after GBPlanner2's official SMB configuration.  The graph,
+# collision checker and information-gain implementation remain upstream code.
+RobotParams:
+  type: kGroundRobot
+  size: [0.30, 0.30, 0.28]
+  size_extension_min: [0.05, 0.05, 0.02]
+  size_extension: [0.10, 0.10, 0.05]
+  center_offset: [0.0, 0.0, -0.08]
+  relax_ratio: 0.5
+  bound_mode: kExtendedBound
+  safety_extension: [0.20, 0.20, 0.05]
+
+SensorParams:
+  sensor_list: ["MID360"]
+  MID360:
+    type: kLidar
+    max_range: 30.0
+    center_offset: [0.0, 0.0, 0.0]
+    rotations: [0.0, 0.0, 0.0]
+    fov: [rad(2.0*pi), rad(59.0*pi/180)]
+    resolution: [rad(5.0*pi/180), rad(5.0*pi/180)]
+    frontier_percentage_threshold: 0.05
+
+BoundedSpaceParams:
+  Global:
+    type: kCuboid
+    min_val: [-100.0, -100.0, -2.0]
+    max_val: [100.0, 100.0, 4.0]
+  Local:
+    type: kCuboid
+    min_val: [-5.0, -5.0, -0.20]
+    max_val: [5.0, 5.0, 0.20]
+    min_extension: [-6.0, -6.0, -0.5]
+    max_extension: [6.0, 6.0, 0.5]
+  LocalSearch:
+    type: kCuboid
+    min_val: [-8.0, -8.0, -0.30]
+    max_val: [8.0, 8.0, 0.30]
+  LocalAdaptiveExp:
+    type: kCuboid
+    min_val: [-3.0, -3.0, -0.20]
+    max_val: [3.0, 3.0, 0.20]
+
+PlanningParams:
+  type: kBasicExploration
+  rr_mode: kGraph
+  exp_sensor_list: ["MID360"]
+  no_gain_zones_list: []
+  edge_length_min: 0.20
+  edge_length_max: 1.50
+  edge_overshoot: 0.10
+  num_vertices_max: 300
+  num_edges_max: 2500
+  num_loops_cutoff: 1000
+  num_loops_max: 4000
+  nearest_range: 1.50
+  nearest_range_min: 0.20
+  nearest_range_max: 1.50
+  use_current_state: true
+  use_ray_model_for_volumetric_gain: true
+  path_length_penalty: 0.15
+  path_direction_penalty: 0.80
+  hanging_vertex_penalty: 5.0
+  exp_gain_voxel_size: 0.50
+  occupied_voxel_gain: 0.0
+  free_voxel_gain: 0.0
+  unknown_voxel_gain: 60.0
+  nonuniform_ray_cast: true
+  ray_cast_step_size_multiplier: 1.0
+  freespace_cloud_enable: false
+  leafs_only_for_volumetric_gain: true
+  cluster_vertices_for_gain: true
+  clustering_radius: 0.40
+  # GBPlanner projects samples onto the ground, then places the graph vertex
+  # this far above it. 0.30 m keeps the extended TB3 collision box clear of
+  # the observed floor (0.20 m made every sampled edge touch the floor).
+  max_ground_height: 0.30
+  robot_height: 0.16
+  max_inclination: rad(15.0*pi/180)
+  interpolate_projection_distance: false
+  yaw_tangent_correction: true
+  planning_backward: false
+  traverse_length_max: 3.0
+  traverse_time_max: 20.0
+  path_safety_enhance_enable: true
+  path_interpolation_distance: 0.25
+  auto_global_planner_enable: false
+  auto_homing_enable: false
+  go_home_if_fully_explored: false
+  global_frame_id: map
+  global_path_inclination_check: true
+  geofence_checking_enable: false
+  augment_free_voxels_time: 1
+  free_frustum_before_planning: false
+
+AdaptiveObbParams:
+  type: kPca
+  local_pointcloud_range: 10.0
+  bounding_box_size_max: 8.0
+
+GeofenceParams:
+  AreaList: []

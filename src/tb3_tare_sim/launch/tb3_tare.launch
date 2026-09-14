@@ -1,0 +1,100 @@
+<launch>
+  <!-- Standalone TB3 + official CMU TARE stack.  Existing Garage launches are
+       intentionally not included or modified. -->
+  <arg name="world_name" default="garage"/>
+  <arg name="scenario" default="garage"/>
+  <arg name="sensor_profile" default="vlp16"/>
+  <arg name="vehicleX" default="0.0"/>
+  <arg name="vehicleY" default="0.0"/>
+  <arg name="vehicleYaw" default="0.0"/>
+  <arg name="gazebo_gui" default="false"/>
+  <arg name="rviz" default="true"/>
+  <arg name="visualization_tools" default="false"/>
+  <arg name="joystick" default="false"/>
+  <arg name="checkTerrainConn" default="true"/>
+  <arg name="twoWayDrive" default="true"/>
+  <arg name="maxSpeed" default="2.0"/>
+  <arg name="autonomySpeed" default="1.50"/>
+
+  <param name="use_sim_time" value="true"/>
+
+  <group if="$(arg joystick)">
+    <include file="$(find ps3joy)/launch/ps3.launch"/>
+  </group>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="$(arg gazebo_gui)"/>
+    <arg name="headless" value="false"/>
+    <arg name="world_name" value="$(find vehicle_simulator)/world/$(arg world_name).world"/>
+  </include>
+
+  <param name="robot_description"
+         command="$(find xacro)/xacro --inorder '$(find tb3_tare_sim)/urdf/turtlebot3_waffle_tare.urdf.xacro' sensor_profile:=$(arg sensor_profile)"/>
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_tb3"
+        args="-urdf -param /robot_description -model tb3_waffle -x $(arg vehicleX) -y $(arg vehicleY) -Y $(arg vehicleYaw)"
+        output="screen"/>
+
+  <!-- Recreate the official CMU input contracts from the Gazebo odometry and
+       the TB3 Velodyne cloud. -->
+  <node pkg="tb3_tare_sim" type="tb3_state_scan_adapter" name="tb3_state_scan_adapter" output="screen">
+    <param name="map_frame" value="map"/>
+    <param name="sensor_frame" value="sensor"/>
+    <param name="sensor_offset_x" value="-0.064"/>
+    <param name="sensor_offset_y" value="0.0"/>
+    <param name="sensor_offset_z" value="0.122"/>
+  </node>
+
+  <!-- pathFollower publishes TwistStamped on the official /cmd_vel topic.
+       Keep that interface for the planner and bridge it to Gazebo's Twist. -->
+  <node pkg="tb3_tare_sim" type="twist_stamped_to_twist.py" name="twist_stamped_to_twist" output="screen">
+    <param name="input_topic" value="/cmd_vel_stamped"/>
+    <param name="output_topic" value="/tb3/cmd_vel_bridge"/>
+    <param name="timeout" value="0.5"/>
+  </node>
+  <node pkg="tb3_tare_sim" type="twist_watchdog.py" name="tb3_cmd_vel_watchdog" output="screen" respawn="true">
+    <param name="input_topic" value="/tb3/cmd_vel_bridge"/>
+    <param name="output_topic" value="/cmd_vel"/>
+    <param name="timeout" value="0.5"/>
+  </node>
+
+  <group>
+    <remap from="/cmd_vel" to="/cmd_vel_stamped"/>
+    <include file="$(find local_planner)/launch/local_planner.launch">
+      <arg name="sensorOffsetX" value="-0.064"/>
+      <arg name="sensorOffsetY" value="0.0"/>
+      <arg name="vehicleLength" value="0.30"/>
+      <arg name="vehicleWidth" value="0.30"/>
+      <arg name="twoWayDrive" value="$(arg twoWayDrive)"/>
+      <arg name="maxSpeed" value="$(arg maxSpeed)"/>
+      <arg name="autonomyMode" value="true"/>
+      <arg name="autonomySpeed" value="$(arg autonomySpeed)"/>
+    </include>
+  </group>
+
+  <include file="$(find terrain_analysis)/launch/terrain_analysis.launch"/>
+  <include file="$(find terrain_analysis_ext)/launch/terrain_analysis_ext.launch">
+    <arg name="checkTerrainConn" value="$(arg checkTerrainConn)"/>
+  </include>
+  <include file="$(find sensor_scan_generation)/launch/sensor_scan_generation.launch"/>
+
+  <group if="$(arg visualization_tools)">
+    <include file="$(find visualization_tools)/launch/visualization_tools.launch">
+      <arg name="world_name" value="$(arg world_name)"/>
+    </include>
+  </group>
+
+  <!-- Keep the two official views from the original two-launch workflow:
+       vehicle_simulator.rviz for raw vehicle/sensor topics and
+       tare_planner_ground.rviz for TARE planning state. -->
+  <node if="$(arg rviz)" launch-prefix="nice" pkg="rviz" type="rviz"
+        name="rvizGA" args="-d $(find vehicle_simulator)/rviz/vehicle_simulator.rviz"
+        respawn="true"/>
+
+  <!-- Use the official TARE node/configuration and its RViz layout. -->
+  <include file="$(find tare_planner)/launch/explore.launch">
+    <arg name="scenario" value="$(arg scenario)"/>
+    <arg name="rviz" value="$(arg rviz)"/>
+  </include>
+</launch>

@@ -1,0 +1,2 @@
+/usr/bin/ar qc /root/tare_planner/devel/lib/libpointcloud_utils.a  CMakeFiles/pointcloud_utils.dir/src/utils/pointcloud_utils.cpp.o
+/usr/bin/ranlib /root/tare_planner/devel/lib/libpointcloud_utils.a

@@ -1,0 +1,2 @@
+/usr/bin/ar qc /root/tare_planner/devel/lib/librolling_grid.a  CMakeFiles/rolling_grid.dir/src/rolling_grid/rolling_grid.cpp.o
+/usr/bin/ranlib /root/tare_planner/devel/lib/librolling_grid.a

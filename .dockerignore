@@ -1,0 +1,13 @@
+# The workspace is rebuilt inside the image. Keeping generated catkin files
+# out of the build context avoids sending stale host binaries to an ARM builder.
+**/build
+**/devel
+**/install
+# Keep the workspace's generated log directory out of the build context. Do
+# not use **/log here: the bundled OR-Tools headers contain an absl/log folder.
+/log
+**/.catkin_tools
+**/.catkin_workspace
+**/__pycache__
+**/.git
+*.log

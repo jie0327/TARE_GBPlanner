@@ -1,0 +1,7 @@
+<library path="lib/libtare_gbplanner_hybrid_rviz_panel">
+  <class name="tare_gbplanner_hybrid/ExplorationControlPanel"
+         type="tare_gbplanner_hybrid::ExplorationControlPanel"
+         base_class_type="rviz::Panel">
+    <description>Start, stop, and continue controls for TARE exploration.</description>
+  </class>
+</library>

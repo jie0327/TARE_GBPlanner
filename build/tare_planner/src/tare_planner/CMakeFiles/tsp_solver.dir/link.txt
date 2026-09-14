@@ -1,0 +1,2 @@
+/usr/bin/ar qc /root/tare_planner/devel/lib/libtsp_solver.a  CMakeFiles/tsp_solver.dir/src/tsp_solver/tsp_solver.cpp.o
+/usr/bin/ranlib /root/tare_planner/devel/lib/libtsp_solver.a

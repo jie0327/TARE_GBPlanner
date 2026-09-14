@@ -1,0 +1,49 @@
+<package>
+  <name>tb3_tare_sim</name>
+  <version>0.1.0</version>
+  <description>Standalone TurtleBot3 simulation adapter for the CMU TARE stack.</description>
+
+  <maintainer email="jack@example.com">slam_docker</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>message_filters</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>pcl_conversions</build_depend>
+  <build_depend>tf</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>message_filters</run_depend>
+  <run_depend>pcl_ros</run_depend>
+  <run_depend>pcl_conversions</run_depend>
+  <run_depend>nodelet</run_depend>
+  <run_depend>topic_tools</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>gazebo_ros</run_depend>
+  <run_depend>rviz</run_depend>
+  <run_depend>xacro</run_depend>
+  <!-- Launch-time dependencies supplied by the official CMU workspace. -->
+  <run_depend>ps3joy</run_depend>
+  <run_depend>vehicle_simulator</run_depend>
+  <run_depend>local_planner</run_depend>
+  <run_depend>terrain_analysis</run_depend>
+  <run_depend>terrain_analysis_ext</run_depend>
+  <run_depend>sensor_scan_generation</run_depend>
+  <run_depend>visualization_tools</run_depend>
+  <run_depend>tare_planner</run_depend>
+  <run_depend>velodyne_description</run_depend>
+  <run_depend>fast_lio</run_depend>
+
+  <test_depend>rostest</test_depend>
+
+  <export/>
+</package>
